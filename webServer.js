@@ -61,19 +61,28 @@ Rules:
 - Do not fabricate certainty. Keep descriptions cautious and concise.
 - If payout unknown, use "TBD".`;
 
-      const openRouterRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-4o-mini",
-          response_format: { type: "json_object" },
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.2,
-        }),
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 9000);
+      let openRouterRes;
+      try {
+        openRouterRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-4o-mini",
+            response_format: { type: "json_object" },
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.2,
+            max_tokens: 800,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
 
       if (!openRouterRes.ok) {
         const errText = await openRouterRes.text();
@@ -90,6 +99,9 @@ Rules:
       console.log(`[scan] success: ${Array.isArray(result.matches) ? result.matches.length : 0} matches`);
       return sendJson(res, 200, result);
     } catch (err) {
+      if (err?.name === "AbortError") {
+        return sendJson(res, 504, { error: "Upstream AI request timed out. Please retry." });
+      }
       console.error("[scan] Unhandled server error", err);
       return sendJson(res, 500, { error: err.message || "Server error." });
     }
