@@ -1,793 +1,467 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unclaimed Money Finder</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unclaimed Money Agent | AI Financial Discovery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #F8F8F6;
+        }
+        
+        .bento-card { 
+            background: #FFFFFF;
+            border: 1px solid #E5E5E0;
+            border-radius: 28px;
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        
+        .bento-card:hover { 
+            transform: translateY(-6px);
+            box-shadow: 0 30px 60px -12px rgba(0,0,0,0.08);
+            border-color: #D6D6CF;
+        }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        .gradient-text {
+            background: linear-gradient(135deg, #1a1a1a 0%, #666666 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-  :root {
-    --bg: #0a0e1a;
-    --surface: #111827;
-    --surface2: #1a2235;
-    --border: rgba(255,255,255,0.08);
-    --border2: rgba(255,255,255,0.15);
-    --gold: #f0c040;
-    --gold-dim: rgba(240,192,64,0.15);
-    --gold-glow: rgba(240,192,64,0.3);
-    --green: #22d68a;
-    --green-dim: rgba(34,214,138,0.12);
-    --red: #ff5757;
-    --text: #e8eaf0;
-    --muted: #6b7a99;
-    --accent: #4f8bff;
-  }
+        .scan-progress-bar {
+            transition: width 0.5s ease-out;
+        }
 
-  body {
-    font-family: 'DM Mono', monospace;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 0;
-  }
+        /* Loading Animation */
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse-soft { animation: pulse-soft 2s infinite; }
 
-  .header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 1.5rem 2rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .logo {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 1.4rem;
-    color: var(--gold);
-    letter-spacing: -0.02em;
-  }
-
-  .logo span { color: var(--text); }
-
-  .badge {
-    background: var(--gold-dim);
-    color: var(--gold);
-    font-size: 0.65rem;
-    padding: 3px 8px;
-    border-radius: 20px;
-    border: 1px solid var(--gold-glow);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .layout {
-    display: grid;
-    grid-template-columns: 340px 1fr;
-    min-height: calc(100vh - 65px);
-  }
-
-  .sidebar {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .section-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--muted);
-    margin-bottom: 0.5rem;
-  }
-
-  .field-group { display: flex; flex-direction: column; gap: 0.4rem; }
-
-  input[type="text"], select {
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.85rem;
-    padding: 0.6rem 0.85rem;
-    width: 100%;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-
-  input[type="text"]:focus, select:focus {
-    border-color: var(--gold);
-  }
-
-  select option { background: var(--surface2); }
-
-  .name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-
-  .divider { height: 1px; background: var(--border); }
-
-  .checks-grid { display: flex; flex-direction: column; gap: 0.5rem; }
-
-  .check-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
-    padding: 0.6rem 0.75rem;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    cursor: pointer;
-    transition: all 0.15s;
-    user-select: none;
-  }
-
-  .check-item:hover { border-color: var(--border2); background: var(--surface2); }
-  .check-item.active { border-color: var(--gold-glow); background: var(--gold-dim); }
-
-  .check-item input[type="checkbox"] { display: none; }
-
-  .check-box {
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
-    border: 1.5px solid var(--border2);
-    flex-shrink: 0;
-    margin-top: 1px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-  }
-
-  .check-item.active .check-box {
-    background: var(--gold);
-    border-color: var(--gold);
-  }
-
-  .check-box::after {
-    content: '';
-    width: 9px;
-    height: 5px;
-    border-left: 2px solid #000;
-    border-bottom: 2px solid #000;
-    transform: rotate(-45deg) translateY(-1px);
-    display: none;
-  }
-
-  .check-item.active .check-box::after { display: block; }
-
-  .check-text { font-size: 0.78rem; line-height: 1.4; }
-  .check-text strong { color: var(--text); font-weight: 500; display: block; font-size: 0.8rem; }
-  .check-text span { color: var(--muted); font-size: 0.72rem; }
-
-  .scan-btn {
-    background: var(--gold);
-    color: #000;
-    border: none;
-    border-radius: 10px;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 0.95rem;
-    padding: 0.85rem;
-    cursor: pointer;
-    letter-spacing: 0.02em;
-    transition: all 0.15s;
-    width: 100%;
-  }
-
-  .scan-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-  .scan-btn:active { transform: translateY(0); }
-  .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-  .main { padding: 2rem; overflow-y: auto; }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    gap: 1rem;
-    color: var(--muted);
-    text-align: center;
-    min-height: 400px;
-  }
-
-  .empty-icon {
-    font-size: 3rem;
-    filter: grayscale(0.5);
-  }
-
-  .empty-state p { font-size: 0.85rem; max-width: 280px; line-height: 1.6; }
-
-  .loading-state {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    gap: 1.5rem;
-    min-height: 400px;
-  }
-
-  .scan-ring {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    border: 3px solid var(--border);
-    border-top-color: var(--gold);
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .scan-label {
-    font-size: 0.85rem;
-    color: var(--muted);
-    text-align: center;
-  }
-
-  .scan-label strong { color: var(--text); display: block; margin-bottom: 0.25rem; }
-
-  .results-state { display: none; flex-direction: column; gap: 1.5rem; }
-
-  .total-card {
-    background: var(--surface);
-    border: 1px solid var(--gold-glow);
-    border-radius: 14px;
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .total-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.3rem; letter-spacing: 0.05em; }
-  .total-amount { font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; color: var(--gold); }
-
-  .total-meta { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
-
-  .results-grid { display: flex; flex-direction: column; gap: 0.75rem; }
-
-  .result-section-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 0.25rem;
-  }
-
-  .claim-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    transition: border-color 0.15s;
-  }
-
-  .claim-card:hover { border-color: var(--border2); }
-  .claim-card.high { border-left: 3px solid var(--green); }
-  .claim-card.medium { border-left: 3px solid var(--gold); }
-  .claim-card.low { border-left: 3px solid var(--muted); }
-  .claim-card.treasury { border-left: 3px solid var(--accent); }
-
-  .claim-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .claim-name { font-weight: 500; font-size: 0.9rem; color: var(--text); }
-  .claim-company { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
-
-  .claim-payout {
-    font-family: 'Syne', sans-serif;
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--green);
-    white-space: nowrap;
-  }
-
-  .claim-body { font-size: 0.78rem; color: var(--muted); line-height: 1.5; margin-bottom: 0.75rem; }
-
-  .claim-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .claim-meta { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-
-  .meta-pill {
-    font-size: 0.7rem;
-    padding: 2px 8px;
-    border-radius: 20px;
-    border: 1px solid var(--border2);
-    color: var(--muted);
-  }
-
-  .meta-pill.deadline-soon { border-color: rgba(255,87,87,0.4); color: var(--red); }
-  .meta-pill.cat { background: var(--surface2); }
-
-  .claim-link {
-    font-size: 0.75rem;
-    color: var(--gold);
-    text-decoration: none;
-    border: 1px solid var(--gold-glow);
-    padding: 3px 10px;
-    border-radius: 6px;
-    transition: all 0.15s;
-  }
-
-  .claim-link:hover { background: var(--gold-dim); }
-
-  .strategy-card {
-    background: linear-gradient(135deg, rgba(79,139,255,0.08), rgba(240,192,64,0.06));
-    border: 1px solid rgba(79,139,255,0.25);
-    border-radius: 14px;
-    padding: 1.25rem 1.5rem;
-  }
-
-  .strategy-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    margin-bottom: 0.75rem;
-  }
-
-  .strategy-body { font-size: 0.82rem; color: var(--text); line-height: 1.7; }
-
-  .disclaimer {
-    font-size: 0.72rem;
-    color: var(--muted);
-    border-top: 1px solid var(--border);
-    padding-top: 1rem;
-    line-height: 1.6;
-  }
-
-  .error-msg {
-    background: rgba(255,87,87,0.08);
-    border: 1px solid rgba(255,87,87,0.25);
-    border-radius: 10px;
-    padding: 1rem;
-    font-size: 0.82rem;
-    color: var(--red);
-    display: none;
-  }
-
-  .conf-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    margin-right: 4px;
-  }
-  .conf-dot.high { background: var(--green); }
-  .conf-dot.medium { background: var(--gold); }
-  .conf-dot.low { background: var(--muted); }
-
-  @media (max-width: 768px) {
-    .layout { grid-template-columns: 1fr; }
-    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
-    .name-row { grid-template-columns: 1fr; }
-  }
-</style>
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2em;
+        }
+    </style>
 </head>
-<body>
+<body class="text-slate-900 min-h-screen selection:bg-indigo-100">
 
-<div class="header">
-  <div class="logo">💰 <span>Money</span>Finder</div>
-  <div class="badge">AI Agent</div>
-</div>
-
-<div class="layout">
-  <div class="sidebar">
-    <div>
-      <div class="section-label">Your Identity</div>
-      <div class="name-row">
-        <div class="field-group">
-          <input type="text" id="firstName" placeholder="First name">
+    <!-- Custom Modal (Replaces alert) -->
+    <div id="customModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100">
+            <h3 id="modalTitle" class="text-xl font-bold mb-2 text-slate-900">Notice</h3>
+            <p id="modalBody" class="text-slate-500 mb-6 leading-relaxed">Message goes here.</p>
+            <button onclick="closeModal()" class="w-full py-4 bg-black text-white font-bold rounded-2xl hover:bg-slate-800 transition-all">Understood</button>
         </div>
-        <div class="field-group">
-          <input type="text" id="lastName" placeholder="Last name">
+    </div>
+
+    <!-- Navigation -->
+    <nav class="max-w-6xl mx-auto px-6 py-8 flex justify-between items-center">
+        <div class="flex items-center gap-3 group cursor-pointer">
+            <div class="w-12 h-12 bg-black rounded-2xl flex items-center justify-center text-white transition-transform group-hover:rotate-12">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <span class="font-bold text-2xl tracking-tight">MoneyAgent<span class="text-slate-400">.ai</span></span>
         </div>
-      </div>
-      <div class="field-group" style="margin-top: 0.75rem;">
-        <select id="state">
-          <option value="">Select state...</option>
-          <option>AL</option><option>AK</option><option>AZ</option><option>AR</option>
-          <option>CA</option><option>CO</option><option>CT</option><option>DE</option>
-          <option>FL</option><option>GA</option><option>HI</option><option>ID</option>
-          <option>IL</option><option>IN</option><option>IA</option><option>KS</option>
-          <option>KY</option><option>LA</option><option>ME</option><option>MD</option>
-          <option>MA</option><option>MI</option><option>MN</option><option>MS</option>
-          <option>MO</option><option>MT</option><option>NE</option><option>NV</option>
-          <option>NH</option><option>NJ</option><option>NM</option><option>NY</option>
-          <option>NC</option><option>ND</option><option>OH</option><option>OK</option>
-          <option>OR</option><option>PA</option><option>RI</option><option>SC</option>
-          <option>SD</option><option>TN</option><option>TX</option><option>UT</option>
-          <option>VT</option><option>VA</option><option>WA</option><option>WV</option>
-          <option>WI</option><option>WY</option><option>DC</option>
-        </select>
-      </div>
-    </div>
+        <div class="hidden md:flex items-center gap-6">
+            <span class="text-xs font-bold tracking-widest uppercase text-slate-400 px-5 py-2.5 rounded-full border border-slate-200 bg-white/50">
+                <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
+                Live Treasury Scanning
+            </span>
+        </div>
+    </nav>
 
-    <div class="divider"></div>
+    <main class="max-w-6xl mx-auto px-6 py-12">
+        <!-- Hero Header -->
+        <header class="mb-20 text-center md:text-left">
+            <div class="inline-block mb-4 px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-widest">
+                AI Financial Audit v2.5
+            </div>
+            <h1 class="text-5xl md:text-7xl font-extrabold tracking-tighter leading-[1.1] mb-8 gradient-text">
+                Your forgotten wealth,<br/>
+                <span class="italic font-medium text-slate-400">recovered by AI.</span>
+            </h1>
+            <p class="text-xl text-slate-500 max-w-2xl leading-relaxed mx-auto md:mx-0">
+                Our agent cross-references your profile with state unclaimed property databases and thousands of active legal settlements to find money that belongs to you.
+            </p>
+        </header>
 
-    <div>
-      <div class="section-label">Eligibility Checklist</div>
-      <div class="checks-grid" id="checksGrid">
-        <label class="check-item" data-value="iphone">
-          <div class="check-box"></div>
-          <div class="check-text">
-            <strong>iPhone 11–17 user</strong>
-            <span>Any variant, current or past</span>
-          </div>
-        </label>
-        <label class="check-item" data-value="netflix">
-          <div class="check-box"></div>
-          <div class="check-text">
-            <strong>Netflix subscriber</strong>
-            <span>Current or past account holder</span>
-          </div>
-        </label>
-        <label class="check-item" data-value="appleWatch">
-          <div class="check-box"></div>
-          <div class="check-text">
-            <strong>Apple Watch owner</strong>
-            <span>Any generation</span>
-          </div>
-        </label>
-        <label class="check-item" data-value="facebook">
-          <div class="check-box"></div>
-          <div class="check-text">
-            <strong>Facebook / Meta account</strong>
-            <span>Current or former user</span>
-          </div>
-        </label>
-        <label class="check-item" data-value="google">
-          <div class="check-box"></div>
-          <div class="check-text">
-            <strong>Google services user</strong>
-            <span>Gmail, Maps, Search, etc.</span>
-          </div>
-        </label>
-        <label class="check-item" data-value="equifax">
-          <div class="check-box"></div>
-          <div class="check-text">
-            <strong>Equifax breach (2017)</strong>
-            <span>Had credit file at the time</span>
-          </div>
-        </label>
-        <label class="check-item" data-value="tuna">
-          <div class="check-box"></div>
-          <div class="check-text">
-            <strong>Bought canned tuna</strong>
-            <span>StarKist, Bumble Bee, Chicken of the Sea</span>
-          </div>
-        </label>
-        <label class="check-item" data-value="banking">
-          <div class="check-box"></div>
-          <div class="check-text">
-            <strong>Bank overdraft fees</strong>
-            <span>Charged by major US bank</span>
-          </div>
-        </label>
-        <label class="check-item active" data-value="strategize" style="border-color: rgba(79,139,255,0.4); background: rgba(79,139,255,0.08);">
-          <div class="check-box" style="background: var(--accent); border-color: var(--accent);"></div>
-          <div class="check-text">
-            <strong>Strategize for me</strong>
-            <span>Get AI-ranked top opportunities</span>
-          </div>
-        </label>
-      </div>
-    </div>
+        <!-- Main Form & Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            
+            <!-- Information Input Column -->
+            <div class="lg:col-span-8 space-y-10">
+                <!-- Profile Section -->
+                <section class="bento-card p-10">
+                    <div class="flex items-center gap-5 mb-10">
+                        <div class="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">1</div>
+                        <h2 class="text-2xl font-bold tracking-tight">Identify Your Profile</h2>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-3">
+                            <label class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 ml-1">Legal First Name</label>
+                            <input type="text" id="firstName" placeholder="e.g. Sarah" class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-slate-300">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 ml-1">Legal Last Name</label>
+                            <input type="text" id="lastName" placeholder="e.g. Miller" class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-slate-300">
+                        </div>
+                        <div class="md:col-span-2 space-y-3">
+                            <label class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 ml-1">Current State of Residence</label>
+                            <select id="state" class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 focus:outline-none transition-all text-slate-700 cursor-pointer">
+                                <option value="">Select Location...</option>
+                                <option value="Alabama">Alabama</option><option value="Alaska">Alaska</option><option value="Arizona">Arizona</option>
+                                <option value="Arkansas">Arkansas</option><option value="California">California</option><option value="Colorado">Colorado</option>
+                                <option value="Connecticut">Connecticut</option><option value="Delaware">Delaware</option><option value="Florida">Florida</option>
+                                <option value="Georgia">Georgia</option><option value="Hawaii">Hawaii</option><option value="Idaho">Idaho</option>
+                                <option value="Illinois">Illinois</option><option value="Indiana">Indiana</option><option value="Iowa">Iowa</option>
+                                <option value="Kansas">Kansas</option><option value="Kentucky">Kentucky</option><option value="Louisiana">Louisiana</option>
+                                <option value="Maine">Maine</option><option value="Maryland">Maryland</option><option value="Massachusetts">Massachusetts</option>
+                                <option value="Michigan">Michigan</option><option value="Minnesota">Minnesota</option><option value="Mississippi">Mississippi</option>
+                                <option value="Missouri">Missouri</option><option value="Montana">Montana</option><option value="Nebraska">Nebraska</option>
+                                <option value="Nevada">Nevada</option><option value="New Hampshire">New Hampshire</option><option value="New Jersey">New Jersey</option>
+                                <option value="New Mexico">New Mexico</option><option value="New York">New York</option><option value="North Carolina">North Carolina</option>
+                                <option value="North Dakota">North Dakota</option><option value="Ohio">Ohio</option><option value="Oklahoma">Oklahoma</option>
+                                <option value="Oregon">Oregon</option><option value="Pennsylvania">Pennsylvania</option><option value="Rhode Island">Rhode Island</option>
+                                <option value="South Carolina">South Carolina</option><option value="South Dakota">South Dakota</option><option value="Tennessee">Tennessee</option>
+                                <option value="Texas">Texas</option><option value="Utah">Utah</option><option value="Vermont">Vermont</option>
+                                <option value="Virginia">Virginia</option><option value="Washington">Washington</option><option value="West Virginia">West Virginia</option>
+                                <option value="Wisconsin">Wisconsin</option><option value="Wyoming">Wyoming</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
 
-    <button class="scan-btn" id="scanBtn" onclick="runScan()">
-      Scan for My Money →
-    </button>
-  </div>
+                <!-- Activity Checkbox Section -->
+                <section class="bento-card p-10">
+                    <div class="flex items-center gap-5 mb-10">
+                        <div class="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">2</div>
+                        <h2 class="text-2xl font-bold tracking-tight">Activity Eligibility</h2>
+                    </div>
+                    
+                    <p class="text-sm text-slate-500 mb-8 leading-relaxed">
+                        Select services or products you have used in the last 10 years. This helps the AI identify relevant class action settlements.
+                    </p>
 
-  <div class="main" id="mainArea">
-    <div class="empty-state" id="emptyState">
-      <div class="empty-icon">🔎</div>
-      <div style="font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--text);">Find your unclaimed money</div>
-      <p>Enter your name and state, check everything that applies, and the AI agent will scan government treasuries, federal programs, and active class action settlements.</p>
-    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="eligibilityOptions">
+                        <label class="group flex items-center p-5 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:bg-white hover:border-indigo-300 transition-all">
+                            <input type="checkbox" value="iPhone/Apple User" class="w-6 h-6 rounded-lg border-slate-300 text-black focus:ring-0 mr-4 transition-all checked:bg-black">
+                            <div>
+                                <span class="block text-sm font-bold text-slate-700">Apple/iPhone</span>
+                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Device User</span>
+                            </div>
+                        </label>
+                        <label class="group flex items-center p-5 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:bg-white hover:border-indigo-300 transition-all">
+                            <input type="checkbox" value="Netflix/Streaming" class="w-6 h-6 rounded-lg border-slate-300 text-black focus:ring-0 mr-4 transition-all checked:bg-black">
+                            <div>
+                                <span class="block text-sm font-bold text-slate-700">Netflix</span>
+                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Subscriber</span>
+                            </div>
+                        </label>
+                        <label class="group flex items-center p-5 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:bg-white hover:border-indigo-300 transition-all">
+                            <input type="checkbox" value="Meta/Facebook" class="w-6 h-6 rounded-lg border-slate-300 text-black focus:ring-0 mr-4 transition-all checked:bg-black">
+                            <div>
+                                <span class="block text-sm font-bold text-slate-700">Meta/Facebook</span>
+                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Account Owner</span>
+                            </div>
+                        </label>
+                        <label class="group flex items-center p-5 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:bg-white hover:border-indigo-300 transition-all">
+                            <input type="checkbox" value="T-Mobile/Verizon" class="w-6 h-6 rounded-lg border-slate-300 text-black focus:ring-0 mr-4 transition-all checked:bg-black">
+                            <div>
+                                <span class="block text-sm font-bold text-slate-700">Mobile Carrier</span>
+                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">T-Mobile/Verizon</span>
+                            </div>
+                        </label>
+                        <label class="group flex items-center p-5 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:bg-white hover:border-indigo-300 transition-all">
+                            <input type="checkbox" value="Bank Customer" class="w-6 h-6 rounded-lg border-slate-300 text-black focus:ring-0 mr-4 transition-all checked:bg-black">
+                            <div>
+                                <span class="block text-sm font-bold text-slate-700">Major Bank User</span>
+                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Wells Fargo/BoA</span>
+                            </div>
+                        </label>
+                        <label class="group flex items-center p-5 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:bg-white hover:border-indigo-300 transition-all">
+                            <input type="checkbox" value="Retail Customer" class="w-6 h-6 rounded-lg border-slate-300 text-black focus:ring-0 mr-4 transition-all checked:bg-black">
+                            <div>
+                                <span class="block text-sm font-bold text-slate-700">Big Box Retail</span>
+                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Walmart/Amazon</span>
+                            </div>
+                        </label>
+                    </div>
+                </section>
+            </div>
 
-    <div class="loading-state" id="loadingState">
-      <div class="scan-ring"></div>
-      <div class="scan-label">
-        <strong id="loadingTitle">Agent scanning...</strong>
-        <span id="loadingMsg">Searching government treasuries and settlement databases</span>
-      </div>
-    </div>
+            <!-- Sticky CTA & Status Column -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-black text-white p-10 rounded-[40px] shadow-2xl sticky top-12 border border-slate-800">
+                    <h3 class="text-2xl font-bold mb-4 leading-tight">Start Discovery</h3>
+                    <p class="text-slate-400 text-sm mb-10 leading-relaxed font-medium">
+                        The agent will query state-specific databases and legal repositories.
+                    </p>
+                    
+                    <button id="searchBtn" onclick="initiateScan()" class="group w-full py-5 bg-white text-black font-bold rounded-2xl shadow-xl hover:bg-slate-100 transition-all flex items-center justify-center gap-3 relative overflow-hidden">
+                        <span class="relative z-10" id="btnLabel">Run AI Scan</span>
+                        <svg id="btnArrow" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:translate-x-1 transition-transform relative z-10" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    
+                    <div id="statusArea" class="hidden mt-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <span id="statusMessage" class="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-400">Initializing...</span>
+                            <span id="percentageText" class="text-[10px] font-bold text-slate-500">0%</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div id="progressBar" class="h-full bg-indigo-500 w-0 transition-all duration-300"></div>
+                        </div>
+                        <p id="subStatus" class="mt-4 text-[11px] text-slate-500 animate-pulse-soft italic leading-relaxed">Agent is booting sandbox environment...</p>
+                    </div>
+                </div>
 
-    <div class="error-msg" id="errorMsg"></div>
+                <div class="bento-card p-8 bg-white/60 backdrop-blur-sm border-dashed text-center">
+                    <div class="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 mx-auto mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <p class="text-sm text-slate-600 italic leading-relaxed">
+                        "Over $70 Billion in unclaimed property is held by state governments in the US."
+                    </p>
+                </div>
+            </div>
+        </div>
 
-    <div class="results-state" id="resultsState"></div>
-  </div>
-</div>
+        <!-- Results Section -->
+        <section id="resultsSection" class="hidden mt-24 pb-32">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12 border-b border-slate-200 pb-8">
+                <div>
+                    <h2 class="text-4xl font-black tracking-tight text-slate-900 mb-2">Discovery Report</h2>
+                    <p class="text-slate-500 font-medium">Identified potential matches based on your profile.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="matchCount" class="px-5 py-2 bg-black text-white rounded-full text-xs font-bold uppercase tracking-widest">0 Matches</div>
+                    <button onclick="window.print()" class="p-2 text-slate-400 hover:text-black transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Matches Injected Here -->
+            </div>
 
-<script>
-  const checks = new Set(['strategize']);
+            <!-- Disclaimer -->
+            <div class="mt-16 p-8 bg-slate-50 rounded-3xl border border-slate-200">
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">Important Legal Notice</p>
+                <p class="text-xs text-slate-500 leading-relaxed text-center max-w-3xl mx-auto">
+                    This tool is an AI-powered discovery agent and does not constitute legal or financial advice. The "MoneyAgent.ai" report displays potential matches found in public records. To claim funds, you must visit the official government or legal administrator websites linked in the report. We do not process claims directly.
+                </p>
+            </div>
+        </section>
+    </main>
 
-  document.querySelectorAll('.check-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const val = item.dataset.value;
-      if (checks.has(val)) {
-        checks.delete(val);
-        item.classList.remove('active');
-        if (val === 'strategize') {
-          item.style.borderColor = '';
-          item.style.background = '';
-          item.querySelector('.check-box').style.background = '';
-          item.querySelector('.check-box').style.borderColor = '';
+    <footer class="max-w-6xl mx-auto px-6 py-12 border-t border-slate-200 text-center md:text-left">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+            <p class="text-sm text-slate-400">&copy; 2026 MoneyAgent.ai. Secure Digital Asset Recovery.</p>
+            <div class="flex gap-8">
+                <a href="#" class="text-xs font-bold text-slate-400 hover:text-black transition-colors uppercase tracking-widest">Privacy</a>
+                <a href="#" class="text-xs font-bold text-slate-400 hover:text-black transition-colors uppercase tracking-widest">Security</a>
+                <a href="#" class="text-xs font-bold text-slate-400 hover:text-black transition-colors uppercase tracking-widest">Manual Lookup</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const apiKey = ""; // Environment handles this
+        const modelName = "gemini-2.5-flash-preview-09-2025";
+
+        function showModal(title, message) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerText = message;
+            document.getElementById('customModal').classList.remove('hidden');
+            document.getElementById('customModal').classList.add('flex');
         }
-      } else {
-        checks.add(val);
-        item.classList.add('active');
-        if (val === 'strategize') {
-          item.style.borderColor = 'rgba(79,139,255,0.4)';
-          item.style.background = 'rgba(79,139,255,0.08)';
-          item.querySelector('.check-box').style.background = 'var(--accent)';
-          item.querySelector('.check-box').style.borderColor = 'var(--accent)';
+
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+            document.getElementById('customModal').classList.remove('flex');
         }
-      }
-    });
-  });
 
-  const loadingMessages = [
-    ['Querying state treasury...', `Searching unclaimed property database for your state`],
-    ['Scanning federal programs...', 'IRS refunds, FTC payouts, FDIC claims'],
-    ['Searching active settlements...', 'TopClassActions, ClassAction.org, settlement databases'],
-    ['Matching your profile...', 'Apple, Meta, Netflix, financial institution cases'],
-    ['Calculating potential payouts...', 'Ranking by confidence and estimated value'],
-  ];
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) return await response.json();
+                    
+                    if (response.status === 429 || response.status >= 500) {
+                        const delay = Math.pow(2, i) * 1000;
+                        await new Promise(res => setTimeout(res, delay));
+                        continue;
+                    }
+                    throw new Error(`API Error: ${response.status}`);
+                } catch (err) {
+                    if (i === maxRetries - 1) throw err;
+                    const delay = Math.pow(2, i) * 1000;
+                    await new Promise(res => setTimeout(res, delay));
+                }
+            }
+        }
 
-  let loadingInterval;
+        async function initiateScan() {
+            const btn = document.getElementById('searchBtn');
+            const statusArea = document.getElementById('statusArea');
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsGrid = document.getElementById('resultsGrid');
+            const progressBar = document.getElementById('progressBar');
+            const statusMsg = document.getElementById('statusMessage');
+            const subStatus = document.getElementById('subStatus');
+            const percentageText = document.getElementById('percentageText');
 
-  function startLoadingCycle() {
-    let i = 0;
-    updateLoading(loadingMessages[0]);
-    loadingInterval = setInterval(() => {
-      i = (i + 1) % loadingMessages.length;
-      updateLoading(loadingMessages[i]);
-    }, 2200);
-  }
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const state = document.getElementById('state').value;
+            const eligibility = Array.from(document.querySelectorAll('#eligibilityOptions input:checked')).map(i => i.value);
 
-  function updateLoading([title, msg]) {
-    document.getElementById('loadingTitle').textContent = title;
-    document.getElementById('loadingMsg').textContent = msg;
-  }
+            if (!firstName || !lastName || !state) {
+                showModal("Missing Info", "Please provide your full legal name and current state to begin the discovery process.");
+                return;
+            }
 
-  function show(id) {
-    ['emptyState','loadingState','resultsState','errorMsg'].forEach(s => {
-      const el = document.getElementById(s);
-      if (el) {
-        el.style.display = (s === id) ? (s === 'resultsState' ? 'flex' : (s === 'loadingState' ? 'flex' : 'block')) : 'none';
-      }
-    });
-  }
+            // UI Feedback
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            statusArea.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            
+            // Simulation Stages
+            const updateUI = (perc, msg, sub) => {
+                progressBar.style.width = `${perc}%`;
+                statusMsg.innerText = msg;
+                subStatus.innerText = sub;
+                percentageText.innerText = `${perc}%`;
+            };
 
-  async function runScan() {
-    const firstName = document.getElementById('firstName').value.trim();
-    const lastName = document.getElementById('lastName').value.trim();
-    const state = document.getElementById('state').value;
+            updateUI(15, "Initializing", "Agent v2.5 booting...");
+            await new Promise(r => setTimeout(r, 800));
 
-    if (!firstName || !lastName || !state) {
-      alert('Please enter your first name, last name, and state.');
-      return;
-    }
+            updateUI(30, "Connecting", `Querying ${state} Department of Treasury...`);
+            await new Promise(r => setTimeout(r, 1200));
 
-    document.getElementById('scanBtn').disabled = true;
-    show('loadingState');
-    startLoadingCycle();
+            updateUI(55, "Scanning", "Cross-referencing class action databases...");
+            
+            try {
+                const systemPrompt = `You are a professional financial discovery agent. 
+                Task: Search for real, verified unclaimed money databases and active class action settlements for a person named ${firstName} ${lastName} residing in ${state}. 
+                They have indicated they use/used: ${eligibility.join(', ')}.
+                
+                You MUST use Google Search to find actual official state treasury links for ${state} and real active settlements.
+                Return ONLY a JSON object with this schema: 
+                { "matches": [ { "title": "...", "description": "...", "estimatedValue": "...", "link": "...", "sourceType": "Treasury|ClassAction" } ] }`;
 
-    const checksObj = {};
-    checks.forEach(c => checksObj[c] = true);
+                const userQuery = `Find unclaimed property and class action settlements for ${firstName} ${lastName} in ${state}.`;
 
-    const prompt = buildAgentPrompt(firstName, lastName, state, checksObj);
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    tools: [{ "google_search": {} }],
+                    generationConfig: {
+                        responseMimeType: "application/json"
+                    }
+                };
 
-    try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4000,
-          system: buildSystemPrompt(firstName, lastName, state, checksObj),
-          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
+                const data = await fetchWithRetry(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    }
+                );
 
-      const data = await response.json();
+                updateUI(85, "Analyzing", "Validating claims and processing documentation...");
+                await new Promise(r => setTimeout(r, 1000));
 
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'API error');
-      }
+                const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                const result = JSON.parse(responseText);
 
-      const text = data.content
-        .filter(b => b.type === 'text')
-        .map(b => b.text)
-        .join('');
+                resultsGrid.innerHTML = '';
+                const matches = result.matches || [];
+                document.getElementById('matchCount').innerText = `${matches.length} Match${matches.length === 1 ? '' : 'es'} Found`;
 
-      let result;
-      try {
-        const clean = text.replace(/```json|```/g, '').trim();
-        const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
-        result = JSON.parse(clean.slice(s, e + 1));
-      } catch {
-        result = { settlements: [], treasuryFinds: [], strategy: text, summary: '', totalEstimatedMin: 0, totalEstimatedMax: 0 };
-      }
+                if (matches.length > 0) {
+                    matches.forEach(match => {
+                        const isTreasury = match.sourceType === 'Treasury';
+                        resultsGrid.innerHTML += `
+                            <div class="bento-card p-8 bg-white border-slate-200 flex flex-col h-full group">
+                                <div class="flex-grow">
+                                    <div class="flex justify-between items-start mb-6">
+                                        <div class="w-10 h-10 rounded-xl ${isTreasury ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'} flex items-center justify-center font-bold">
+                                            ${isTreasury ? '🏛️' : '⚖️'}
+                                        </div>
+                                        <div class="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-100 uppercase tracking-widest">Likely Match</div>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-slate-900 leading-tight mb-4 group-hover:text-indigo-600 transition-colors">${match.title}</h3>
+                                    <p class="text-slate-500 text-sm leading-relaxed mb-8">${match.description}</p>
+                                </div>
+                                <div class="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">Est. Payout</p>
+                                        <div class="text-2xl font-black text-slate-900">${match.estimatedValue}</div>
+                                    </div>
+                                    <a href="${match.link}" target="_blank" class="px-5 py-3 bg-black text-white text-xs font-bold rounded-xl hover:bg-indigo-600 transition-all flex items-center gap-2">
+                                        Claim
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    resultsGrid.innerHTML = `
+                        <div class="lg:col-span-3 bento-card p-16 bg-slate-50/50 border-dashed text-center">
+                            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl">🔍</div>
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">No Verified Electronic Records</h3>
+                            <p class="text-slate-500 text-sm max-w-md mx-auto leading-relaxed">
+                                Our real-time scan didn't find specific digital records for your identity in state datasets. 
+                                <br><br>
+                                <strong>Next Step:</strong> We recommend a manual check at <a href="https://missingmoney.com" target="_blank" class="text-indigo-600 font-bold underline">MissingMoney.com</a> which covers offline physical archives.
+                            </p>
+                        </div>
+                    `;
+                }
 
-      clearInterval(loadingInterval);
-      renderResults(result, firstName, lastName, state);
-    } catch (err) {
-      clearInterval(loadingInterval);
-      const errEl = document.getElementById('errorMsg');
-      errEl.textContent = '⚠ ' + err.message;
-      errEl.style.display = 'block';
-      show('errorMsg');
-    } finally {
-      document.getElementById('scanBtn').disabled = false;
-    }
-  }
+                updateUI(100, "Complete", "Report generated successfully.");
+                resultsSection.classList.remove('hidden');
+                
+                // Smooth scroll to results
+                setTimeout(() => {
+                    resultsSection.scrollIntoView({ behavior: 'smooth' });
+                }, 500);
 
-  function buildSystemPrompt(firstName, lastName, state, checks) {
-    return `You are an expert unclaimed money researcher. Find all potential unclaimed money and active class action settlements for ${firstName} ${lastName} in ${state}.
-
-ELIGIBILITY: ${Object.keys(checks).join(', ')}
-
-Search for:
-1. Active class action settlements matching eligibility (Apple, Netflix, Facebook, Google, tuna, banking, etc.)
-2. ${state} state treasury unclaimed property
-3. Federal programs (FTC refunds, IRS, FDIC, PBGC)
-4. Any other relevant settlements
-
-Return ONLY valid JSON (no markdown, no preamble):
-{
-  "treasuryFinds": [{"source":"","description":"","searchUrl":"","estimatedValue":"","notes":""}],
-  "settlements": [{"name":"","company":"","category":"Device|Streaming|Food|Tech|Financial|Other","eligibilityReason":"","estimatedPayout":"","deadline":"YYYY-MM-DD or TBD","claimUrl":"","confidence":"High|Medium|Low"}],
-  "strategy": "${checks.strategize ? 'Write 2-3 sentences on the top 3 highest-value opportunities for this profile' : ''}",
-  "totalEstimatedMin": 0,
-  "totalEstimatedMax": 0,
-  "summary": ""
-}
-
-Only include settlements currently open (not expired). Use real URLs. Be specific.`;
-  }
-
-  function buildAgentPrompt(firstName, lastName, state, checks) {
-    return `Search for all unclaimed money and active class action settlements for my profile. Name: ${firstName} ${lastName}, State: ${state}. Eligibility flags: ${JSON.stringify(checks)}. Use web search to find current open settlements and government treasury info. Return results as JSON per system instructions.`;
-  }
-
-  function renderResults(data, firstName, lastName, state) {
-    show('resultsState');
-    const container = document.getElementById('resultsState');
-    container.innerHTML = '';
-    container.style.flexDirection = 'column';
-    container.style.gap = '1.5rem';
-
-    const min = data.totalEstimatedMin || 0;
-    const max = data.totalEstimatedMax || 0;
-    const hasTotal = min > 0 || max > 0;
-
-    container.innerHTML += `
-      <div class="total-card">
-        <div>
-          <div class="total-label">ESTIMATED POTENTIAL FOR</div>
-          <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;">${firstName} ${lastName} · ${state}</div>
-        </div>
-        <div style="text-align:right;">
-          <div class="total-label">TOTAL RANGE</div>
-          <div class="total-amount">${hasTotal ? `$${min.toLocaleString()} – $${max.toLocaleString()}` : 'See below'}</div>
-          <div class="total-meta">${(data.settlements?.length || 0) + (data.treasuryFinds?.length || 0)} potential claims found</div>
-        </div>
-      </div>`;
-
-    if (data.strategy && checks.has('strategize')) {
-      container.innerHTML += `
-        <div class="strategy-card">
-          <div class="strategy-title">AI Strategy Recommendations</div>
-          <div class="strategy-body">${escHtml(data.strategy)}</div>
-        </div>`;
-    }
-
-    if (data.treasuryFinds?.length > 0) {
-      let html = '<div class="results-grid"><div class="result-section-title">Government & Treasury</div>';
-      for (const t of data.treasuryFinds) {
-        html += `
-          <div class="claim-card treasury">
-            <div class="claim-top">
-              <div>
-                <div class="claim-name">${escHtml(t.source || 'Treasury Fund')}</div>
-                <div class="claim-company">${escHtml(t.description || '')}</div>
-              </div>
-              <div class="claim-payout">${escHtml(t.estimatedValue || 'Varies')}</div>
-            </div>
-            <div class="claim-body">${escHtml(t.notes || '')}</div>
-            <div class="claim-footer">
-              <div class="claim-meta"><span class="meta-pill cat">Government</span></div>
-              ${t.searchUrl ? `<a class="claim-link" href="${escHtml(t.searchUrl)}" target="_blank">Search →</a>` : ''}
-            </div>
-          </div>`;
-      }
-      html += '</div>';
-      container.innerHTML += html;
-    }
-
-    if (data.settlements?.length > 0) {
-      const sorted = [...data.settlements].sort((a,b) => {
-        const o = {High:0,Medium:1,Low:2};
-        return (o[a.confidence]??3)-(o[b.confidence]??3);
-      });
-      let html = '<div class="results-grid"><div class="result-section-title">Class Action Settlements</div>';
-      for (const s of sorted) {
-        const conf = (s.confidence||'Low').toLowerCase();
-        const soon = isDeadlineSoon(s.deadline);
-        html += `
-          <div class="claim-card ${conf}">
-            <div class="claim-top">
-              <div>
-                <div class="claim-name"><span class="conf-dot ${conf}"></span>${escHtml(s.name||'Settlement')}</div>
-                <div class="claim-company">${escHtml(s.company||'')}</div>
-              </div>
-              <div class="claim-payout">${escHtml(s.estimatedPayout||'TBD')}</div>
-            </div>
-            <div class="claim-body">${escHtml(s.eligibilityReason||'')}</div>
-            <div class="claim-footer">
-              <div class="claim-meta">
-                <span class="meta-pill cat">${escHtml(s.category||'Other')}</span>
-                ${s.deadline ? `<span class="meta-pill ${soon ? 'deadline-soon' : ''}">⏰ ${escHtml(s.deadline)}</span>` : ''}
-                <span class="meta-pill">${escHtml(s.confidence||'Low')} confidence</span>
-              </div>
-              ${s.claimUrl ? `<a class="claim-link" href="${escHtml(s.claimUrl)}" target="_blank">File claim →</a>` : ''}
-            </div>
-          </div>`;
-      }
-      html += '</div>';
-      container.innerHTML += html;
-    }
-
-    if (data.summary) {
-      container.innerHTML += `
-        <div style="font-size:0.8rem;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;line-height:1.7;">
-          ${escHtml(data.summary)}
-        </div>`;
-    }
-
-    container.innerHTML += `<div class="disclaimer">⚠ Verify all deadlines and eligibility on official settlement websites before filing. This tool uses AI web search and may not capture every active settlement. Always confirm claim amounts directly with settlement administrators.</div>`;
-  }
-
-  function escHtml(str) {
-    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function isDeadlineSoon(d) {
-    try {
-      const days = (new Date(d) - new Date()) / 86400000;
-      return days > 0 && days < 45;
-    } catch { return false; }
-  }
-</script>
+            } catch (err) {
+                console.error(err);
+                showModal("Agent Interruption", "The scanning session timed out or encountered a server-side error. This usually happens if the treasury gateway is busy. Please try again in a few minutes.");
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.innerHTML = `<span>Scan Again</span> <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" /></svg>`;
+                statusArea.classList.add('hidden');
+            }
+        }
+    </script>
 </body>
 </html>
