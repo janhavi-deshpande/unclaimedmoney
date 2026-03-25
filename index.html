@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unclaimed Money Finder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --gold: #f0c040;
+    --gold-dim: rgba(240,192,64,0.15);
+    --gold-glow: rgba(240,192,64,0.3);
+    --green: #22d68a;
+    --green-dim: rgba(34,214,138,0.12);
+    --red: #ff5757;
+    --text: #e8eaf0;
+    --muted: #6b7a99;
+    --accent: #4f8bff;
+  }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--gold);
+    letter-spacing: -0.02em;
+  }
+
+  .logo span { color: var(--text); }
+
+  .badge {
+    background: var(--gold-dim);
+    color: var(--gold);
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--gold-glow);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: calc(100vh - 65px);
+  }
+
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .section-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 0.4rem; }
+
+  input[type="text"], select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    padding: 0.6rem 0.85rem;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type="text"]:focus, select:focus {
+    border-color: var(--gold);
+  }
+
+  select option { background: var(--surface2); }
+
+  .name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+  .divider { height: 1px; background: var(--border); }
+
+  .checks-grid { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .check-item:hover { border-color: var(--border2); background: var(--surface2); }
+  .check-item.active { border-color: var(--gold-glow); background: var(--gold-dim); }
+
+  .check-item input[type="checkbox"] { display: none; }
+
+  .check-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border2);
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .check-item.active .check-box {
+    background: var(--gold);
+    border-color: var(--gold);
+  }
+
+  .check-box::after {
+    content: '';
+    width: 9px;
+    height: 5px;
+    border-left: 2px solid #000;
+    border-bottom: 2px solid #000;
+    transform: rotate(-45deg) translateY(-1px);
+    display: none;
+  }
+
+  .check-item.active .check-box::after { display: block; }
+
+  .check-text { font-size: 0.78rem; line-height: 1.4; }
+  .check-text strong { color: var(--text); font-weight: 500; display: block; font-size: 0.8rem; }
+  .check-text span { color: var(--muted); font-size: 0.72rem; }
+
+  .scan-btn {
+    background: var(--gold);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 0.85rem;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: all 0.15s;
+    width: 100%;
+  }
+
+  .scan-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .scan-btn:active { transform: translateY(0); }
+  .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .main { padding: 2rem; overflow-y: auto; }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 1rem;
+    color: var(--muted);
+    text-align: center;
+    min-height: 400px;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    filter: grayscale(0.5);
+  }
+
+  .empty-state p { font-size: 0.85rem; max-width: 280px; line-height: 1.6; }
+
+  .loading-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 1.5rem;
+    min-height: 400px;
+  }
+
+  .scan-ring {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    border-top-color: var(--gold);
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .scan-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .scan-label strong { color: var(--text); display: block; margin-bottom: 0.25rem; }
+
+  .results-state { display: none; flex-direction: column; gap: 1.5rem; }
+
+  .total-card {
+    background: var(--surface);
+    border: 1px solid var(--gold-glow);
+    border-radius: 14px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .total-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.3rem; letter-spacing: 0.05em; }
+  .total-amount { font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; color: var(--gold); }
+
+  .total-meta { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
+
+  .results-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  .result-section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.25rem;
+  }
+
+  .claim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    transition: border-color 0.15s;
+  }
+
+  .claim-card:hover { border-color: var(--border2); }
+  .claim-card.high { border-left: 3px solid var(--green); }
+  .claim-card.medium { border-left: 3px solid var(--gold); }
+  .claim-card.low { border-left: 3px solid var(--muted); }
+  .claim-card.treasury { border-left: 3px solid var(--accent); }
+
+  .claim-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .claim-name { font-weight: 500; font-size: 0.9rem; color: var(--text); }
+  .claim-company { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+
+  .claim-payout {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--green);
+    white-space: nowrap;
+  }
+
+  .claim-body { font-size: 0.78rem; color: var(--muted); line-height: 1.5; margin-bottom: 0.75rem; }
+
+  .claim-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .claim-meta { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+  .meta-pill {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+  }
+
+  .meta-pill.deadline-soon { border-color: rgba(255,87,87,0.4); color: var(--red); }
+  .meta-pill.cat { background: var(--surface2); }
+
+  .claim-link {
+    font-size: 0.75rem;
+    color: var(--gold);
+    text-decoration: none;
+    border: 1px solid var(--gold-glow);
+    padding: 3px 10px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+
+  .claim-link:hover { background: var(--gold-dim); }
+
+  .strategy-card {
+    background: linear-gradient(135deg, rgba(79,139,255,0.08), rgba(240,192,64,0.06));
+    border: 1px solid rgba(79,139,255,0.25);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .strategy-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  .strategy-body { font-size: 0.82rem; color: var(--text); line-height: 1.7; }
+
+  .disclaimer {
+    font-size: 0.72rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    line-height: 1.6;
+  }
+
+  .error-msg {
+    background: rgba(255,87,87,0.08);
+    border: 1px solid rgba(255,87,87,0.25);
+    border-radius: 10px;
+    padding: 1rem;
+    font-size: 0.82rem;
+    color: var(--red);
+    display: none;
+  }
+
+  .conf-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+  .conf-dot.high { background: var(--green); }
+  .conf-dot.medium { background: var(--gold); }
+  .conf-dot.low { background: var(--muted); }
+
+  @media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    .name-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">💰 <span>Money</span>Finder</div>
+  <div class="badge">AI Agent</div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div>
+      <div class="section-label">Your Identity</div>
+      <div class="name-row">
+        <div class="field-group">
+          <input type="text" id="firstName" placeholder="First name">
+        </div>
+        <div class="field-group">
+          <input type="text" id="lastName" placeholder="Last name">
+        </div>
+      </div>
+      <div class="field-group" style="margin-top: 0.75rem;">
+        <select id="state">
+          <option value="">Select state...</option>
+          <option>AL</option><option>AK</option><option>AZ</option><option>AR</option>
+          <option>CA</option><option>CO</option><option>CT</option><option>DE</option>
+          <option>FL</option><option>GA</option><option>HI</option><option>ID</option>
+          <option>IL</option><option>IN</option><option>IA</option><option>KS</option>
+          <option>KY</option><option>LA</option><option>ME</option><option>MD</option>
+          <option>MA</option><option>MI</option><option>MN</option><option>MS</option>
+          <option>MO</option><option>MT</option><option>NE</option><option>NV</option>
+          <option>NH</option><option>NJ</option><option>NM</option><option>NY</option>
+          <option>NC</option><option>ND</option><option>OH</option><option>OK</option>
+          <option>OR</option><option>PA</option><option>RI</option><option>SC</option>
+          <option>SD</option><option>TN</option><option>TX</option><option>UT</option>
+          <option>VT</option><option>VA</option><option>WA</option><option>WV</option>
+          <option>WI</option><option>WY</option><option>DC</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-label">Eligibility Checklist</div>
+      <div class="checks-grid" id="checksGrid">
+        <label class="check-item" data-value="iphone">
+          <div class="check-box"></div>
+          <div class="check-text">
+            <strong>iPhone 11–17 user</strong>
+            <span>Any variant, current or past</span>
+          </div>
+        </label>
+        <label class="check-item" data-value="netflix">
+          <div class="check-box"></div>
+          <div class="check-text">
+            <strong>Netflix subscriber</strong>
+            <span>Current or past account holder</span>
+          </div>
+        </label>
+        <label class="check-item" data-value="appleWatch">
+          <div class="check-box"></div>
+          <div class="check-text">
+            <strong>Apple Watch owner</strong>
+            <span>Any generation</span>
+          </div>
+        </label>
+        <label class="check-item" data-value="facebook">
+          <div class="check-box"></div>
+          <div class="check-text">
+            <strong>Facebook / Meta account</strong>
+            <span>Current or former user</span>
+          </div>
+        </label>
+        <label class="check-item" data-value="google">
+          <div class="check-box"></div>
+          <div class="check-text">
+            <strong>Google services user</strong>
+            <span>Gmail, Maps, Search, etc.</span>
+          </div>
+        </label>
+        <label class="check-item" data-value="equifax">
+          <div class="check-box"></div>
+          <div class="check-text">
+            <strong>Equifax breach (2017)</strong>
+            <span>Had credit file at the time</span>
+          </div>
+        </label>
+        <label class="check-item" data-value="tuna">
+          <div class="check-box"></div>
+          <div class="check-text">
+            <strong>Bought canned tuna</strong>
+            <span>StarKist, Bumble Bee, Chicken of the Sea</span>
+          </div>
+        </label>
+        <label class="check-item" data-value="banking">
+          <div class="check-box"></div>
+          <div class="check-text">
+            <strong>Bank overdraft fees</strong>
+            <span>Charged by major US bank</span>
+          </div>
+        </label>
+        <label class="check-item active" data-value="strategize" style="border-color: rgba(79,139,255,0.4); background: rgba(79,139,255,0.08);">
+          <div class="check-box" style="background: var(--accent); border-color: var(--accent);"></div>
+          <div class="check-text">
+            <strong>Strategize for me</strong>
+            <span>Get AI-ranked top opportunities</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <button class="scan-btn" id="scanBtn" onclick="runScan()">
+      Scan for My Money →
+    </button>
+  </div>
+
+  <div class="main" id="mainArea">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🔎</div>
+      <div style="font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--text);">Find your unclaimed money</div>
+      <p>Enter your name and state, check everything that applies, and the AI agent will scan government treasuries, federal programs, and active class action settlements.</p>
+    </div>
+
+    <div class="loading-state" id="loadingState">
+      <div class="scan-ring"></div>
+      <div class="scan-label">
+        <strong id="loadingTitle">Agent scanning...</strong>
+        <span id="loadingMsg">Searching government treasuries and settlement databases</span>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="results-state" id="resultsState"></div>
+  </div>
+</div>
+
+<script>
+  const checks = new Set(['strategize']);
+
+  document.querySelectorAll('.check-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const val = item.dataset.value;
+      if (checks.has(val)) {
+        checks.delete(val);
+        item.classList.remove('active');
+        if (val === 'strategize') {
+          item.style.borderColor = '';
+          item.style.background = '';
+          item.querySelector('.check-box').style.background = '';
+          item.querySelector('.check-box').style.borderColor = '';
+        }
+      } else {
+        checks.add(val);
+        item.classList.add('active');
+        if (val === 'strategize') {
+          item.style.borderColor = 'rgba(79,139,255,0.4)';
+          item.style.background = 'rgba(79,139,255,0.08)';
+          item.querySelector('.check-box').style.background = 'var(--accent)';
+          item.querySelector('.check-box').style.borderColor = 'var(--accent)';
+        }
+      }
+    });
+  });
+
+  const loadingMessages = [
+    ['Querying state treasury...', `Searching unclaimed property database for your state`],
+    ['Scanning federal programs...', 'IRS refunds, FTC payouts, FDIC claims'],
+    ['Searching active settlements...', 'TopClassActions, ClassAction.org, settlement databases'],
+    ['Matching your profile...', 'Apple, Meta, Netflix, financial institution cases'],
+    ['Calculating potential payouts...', 'Ranking by confidence and estimated value'],
+  ];
+
+  let loadingInterval;
+
+  function startLoadingCycle() {
+    let i = 0;
+    updateLoading(loadingMessages[0]);
+    loadingInterval = setInterval(() => {
+      i = (i + 1) % loadingMessages.length;
+      updateLoading(loadingMessages[i]);
+    }, 2200);
+  }
+
+  function updateLoading([title, msg]) {
+    document.getElementById('loadingTitle').textContent = title;
+    document.getElementById('loadingMsg').textContent = msg;
+  }
+
+  function show(id) {
+    ['emptyState','loadingState','resultsState','errorMsg'].forEach(s => {
+      const el = document.getElementById(s);
+      if (el) {
+        el.style.display = (s === id) ? (s === 'resultsState' ? 'flex' : (s === 'loadingState' ? 'flex' : 'block')) : 'none';
+      }
+    });
+  }
+
+  async function runScan() {
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const state = document.getElementById('state').value;
+
+    if (!firstName || !lastName || !state) {
+      alert('Please enter your first name, last name, and state.');
+      return;
+    }
+
+    document.getElementById('scanBtn').disabled = true;
+    show('loadingState');
+    startLoadingCycle();
+
+    const checksObj = {};
+    checks.forEach(c => checksObj[c] = true);
+
+    const prompt = buildAgentPrompt(firstName, lastName, state, checksObj);
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          system: buildSystemPrompt(firstName, lastName, state, checksObj),
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'API error');
+      }
+
+      const text = data.content
+        .filter(b => b.type === 'text')
+        .map(b => b.text)
+        .join('');
+
+      let result;
+      try {
+        const clean = text.replace(/```json|```/g, '').trim();
+        const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+        result = JSON.parse(clean.slice(s, e + 1));
+      } catch {
+        result = { settlements: [], treasuryFinds: [], strategy: text, summary: '', totalEstimatedMin: 0, totalEstimatedMax: 0 };
+      }
+
+      clearInterval(loadingInterval);
+      renderResults(result, firstName, lastName, state);
+    } catch (err) {
+      clearInterval(loadingInterval);
+      const errEl = document.getElementById('errorMsg');
+      errEl.textContent = '⚠ ' + err.message;
+      errEl.style.display = 'block';
+      show('errorMsg');
+    } finally {
+      document.getElementById('scanBtn').disabled = false;
+    }
+  }
+
+  function buildSystemPrompt(firstName, lastName, state, checks) {
+    return `You are an expert unclaimed money researcher. Find all potential unclaimed money and active class action settlements for ${firstName} ${lastName} in ${state}.
+
+ELIGIBILITY: ${Object.keys(checks).join(', ')}
+
+Search for:
+1. Active class action settlements matching eligibility (Apple, Netflix, Facebook, Google, tuna, banking, etc.)
+2. ${state} state treasury unclaimed property
+3. Federal programs (FTC refunds, IRS, FDIC, PBGC)
+4. Any other relevant settlements
+
+Return ONLY valid JSON (no markdown, no preamble):
+{
+  "treasuryFinds": [{"source":"","description":"","searchUrl":"","estimatedValue":"","notes":""}],
+  "settlements": [{"name":"","company":"","category":"Device|Streaming|Food|Tech|Financial|Other","eligibilityReason":"","estimatedPayout":"","deadline":"YYYY-MM-DD or TBD","claimUrl":"","confidence":"High|Medium|Low"}],
+  "strategy": "${checks.strategize ? 'Write 2-3 sentences on the top 3 highest-value opportunities for this profile' : ''}",
+  "totalEstimatedMin": 0,
+  "totalEstimatedMax": 0,
+  "summary": ""
+}
+
+Only include settlements currently open (not expired). Use real URLs. Be specific.`;
+  }
+
+  function buildAgentPrompt(firstName, lastName, state, checks) {
+    return `Search for all unclaimed money and active class action settlements for my profile. Name: ${firstName} ${lastName}, State: ${state}. Eligibility flags: ${JSON.stringify(checks)}. Use web search to find current open settlements and government treasury info. Return results as JSON per system instructions.`;
+  }
+
+  function renderResults(data, firstName, lastName, state) {
+    show('resultsState');
+    const container = document.getElementById('resultsState');
+    container.innerHTML = '';
+    container.style.flexDirection = 'column';
+    container.style.gap = '1.5rem';
+
+    const min = data.totalEstimatedMin || 0;
+    const max = data.totalEstimatedMax || 0;
+    const hasTotal = min > 0 || max > 0;
+
+    container.innerHTML += `
+      <div class="total-card">
+        <div>
+          <div class="total-label">ESTIMATED POTENTIAL FOR</div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;">${firstName} ${lastName} · ${state}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="total-label">TOTAL RANGE</div>
+          <div class="total-amount">${hasTotal ? `$${min.toLocaleString()} – $${max.toLocaleString()}` : 'See below'}</div>
+          <div class="total-meta">${(data.settlements?.length || 0) + (data.treasuryFinds?.length || 0)} potential claims found</div>
+        </div>
+      </div>`;
+
+    if (data.strategy && checks.has('strategize')) {
+      container.innerHTML += `
+        <div class="strategy-card">
+          <div class="strategy-title">AI Strategy Recommendations</div>
+          <div class="strategy-body">${escHtml(data.strategy)}</div>
+        </div>`;
+    }
+
+    if (data.treasuryFinds?.length > 0) {
+      let html = '<div class="results-grid"><div class="result-section-title">Government & Treasury</div>';
+      for (const t of data.treasuryFinds) {
+        html += `
+          <div class="claim-card treasury">
+            <div class="claim-top">
+              <div>
+                <div class="claim-name">${escHtml(t.source || 'Treasury Fund')}</div>
+                <div class="claim-company">${escHtml(t.description || '')}</div>
+              </div>
+              <div class="claim-payout">${escHtml(t.estimatedValue || 'Varies')}</div>
+            </div>
+            <div class="claim-body">${escHtml(t.notes || '')}</div>
+            <div class="claim-footer">
+              <div class="claim-meta"><span class="meta-pill cat">Government</span></div>
+              ${t.searchUrl ? `<a class="claim-link" href="${escHtml(t.searchUrl)}" target="_blank">Search →</a>` : ''}
+            </div>
+          </div>`;
+      }
+      html += '</div>';
+      container.innerHTML += html;
+    }
+
+    if (data.settlements?.length > 0) {
+      const sorted = [...data.settlements].sort((a,b) => {
+        const o = {High:0,Medium:1,Low:2};
+        return (o[a.confidence]??3)-(o[b.confidence]??3);
+      });
+      let html = '<div class="results-grid"><div class="result-section-title">Class Action Settlements</div>';
+      for (const s of sorted) {
+        const conf = (s.confidence||'Low').toLowerCase();
+        const soon = isDeadlineSoon(s.deadline);
+        html += `
+          <div class="claim-card ${conf}">
+            <div class="claim-top">
+              <div>
+                <div class="claim-name"><span class="conf-dot ${conf}"></span>${escHtml(s.name||'Settlement')}</div>
+                <div class="claim-company">${escHtml(s.company||'')}</div>
+              </div>
+              <div class="claim-payout">${escHtml(s.estimatedPayout||'TBD')}</div>
+            </div>
+            <div class="claim-body">${escHtml(s.eligibilityReason||'')}</div>
+            <div class="claim-footer">
+              <div class="claim-meta">
+                <span class="meta-pill cat">${escHtml(s.category||'Other')}</span>
+                ${s.deadline ? `<span class="meta-pill ${soon ? 'deadline-soon' : ''}">⏰ ${escHtml(s.deadline)}</span>` : ''}
+                <span class="meta-pill">${escHtml(s.confidence||'Low')} confidence</span>
+              </div>
+              ${s.claimUrl ? `<a class="claim-link" href="${escHtml(s.claimUrl)}" target="_blank">File claim →</a>` : ''}
+            </div>
+          </div>`;
+      }
+      html += '</div>';
+      container.innerHTML += html;
+    }
+
+    if (data.summary) {
+      container.innerHTML += `
+        <div style="font-size:0.8rem;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;line-height:1.7;">
+          ${escHtml(data.summary)}
+        </div>`;
+    }
+
+    container.innerHTML += `<div class="disclaimer">⚠ Verify all deadlines and eligibility on official settlement websites before filing. This tool uses AI web search and may not capture every active settlement. Always confirm claim amounts directly with settlement administrators.</div>`;
+  }
+
+  function escHtml(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function isDeadlineSoon(d) {
+    try {
+      const days = (new Date(d) - new Date()) / 86400000;
+      return days > 0 && days < 45;
+    } catch { return false; }
+  }
+</script>
+</body>
+</html>
