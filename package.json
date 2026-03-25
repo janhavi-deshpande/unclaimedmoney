@@ -6,15 +6,20 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "web": "node webServer.js",
+    "web:dev": "node --watch webServer.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "anthropic-ai": "^0.0.10",
+    "boxen": "^8.0.1",
     "chalk": "^5.3.0",
-    "ora": "^8.0.1",
     "inquirer": "^12.0.0",
     "minimist": "^1.2.8",
-    "boxen": "^8.0.1"
+    "openai": "^6.32.0",
+    "ora": "^8.0.1",
+    "puppeteer": "^24.40.0"
   },
   "engines": {
     "node": ">=18.0.0"

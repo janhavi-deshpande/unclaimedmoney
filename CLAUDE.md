@@ -17,27 +17,37 @@ unclaimed-money-agent/
 ├── package.json
 ├── index.js           ← Main CLI entry point
 └── src/
-    ├── agent.js       ← Core AI agent logic (Anthropic SDK)
-    ├── searcher.js    ← Web search tool wrapper
-    ├── matcher.js     ← Settlement matching logic
-    └── ui.js          ← Terminal output formatting
+    ├── agent.js              ← Core AI agent logic (Anthropic SDK + built-in web search)
+    ├── openRouterAgent.js    ← Alternative agent (OpenRouter LLM + Tavily search)
+    ├── treasuryScraper.js    ← Puppeteer browser automation for live treasury searches
+    ├── searcher.js           ← Search plan builder and state treasury URLs
+    ├── matcher.js            ← Settlement matching logic
+    └── ui.js                 ← Terminal output formatting
 ```
 
 ## Setup
 
 ```bash
 npm install
+
+# Option 1: Anthropic (uses built-in web search)
 export ANTHROPIC_API_KEY=your_key_here
+
+# Option 2: OpenRouter + Tavily
+export OPENROUTER_API_KEY=your_key_here
+export TAVILY_API_KEY=your_key_here
+
 node index.js
 ```
 
 ## How the Agent Works
 
 1. **User inputs**: first name, last name, state, and selected eligibility checkboxes
-2. **Agent builds a profile** and generates targeted search queries
-3. **Web search tool** scans live settlement databases and government sites
-4. **Matcher** scores results against the user profile
-5. **Output**: ranked list of potential claims with estimated values and filing links
+2. **Treasury scraper** (Puppeteer) runs live browser searches on MissingMoney.com and state treasury sites in parallel
+3. **Agent builds a profile** and generates targeted search queries
+4. **Web search tool** scans live settlement databases and government sites
+5. **Matcher** scores results against the user profile
+6. **Output**: live treasury results + ranked list of potential claims with estimated values and filing links
 
 ## Key Commands for Claude Code
 
